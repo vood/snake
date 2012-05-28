@@ -1,0 +1,205 @@
+<!DOCTYPE>
+<html>
+<head>
+    <title>Canvas Snake</title>
+</head>
+<body>
+<canvas id="game" width="640" height="480" style="border: 1px #333 solid" tabindex="1">
+</canvas>
+<script type="text/javascript">
+    var app = {
+        map: [],
+        keyToDirectionMap:{
+            38:'N', //up
+            40:'S', //down
+            37:'W', //left
+            39:'E'  //right
+        },
+        oppositeDirections:{
+            N:'S',
+            S:'N',
+            W:'E',
+            E:'W'
+        },
+        length:2,
+        speed:10,
+        ctx:null,
+        direction:'E',
+        foodCoords:{
+            x:-20, y:-20
+        },
+        dimensions:{
+            width:20,
+            height:20
+        },
+        coordinates:{
+            x:0, y:0
+
+        },
+        body:[],
+        init:function (canvas) {
+            if (!canvas || !canvas.getContext) {
+                console.log('Canvas is required');
+                return false;
+            }
+            this.canvas = canvas;
+            this.ctx = canvas.getContext('2d');
+            this.coordinates = {
+                y:0, //(this.canvas.height) / 2,
+                x:0 //(this.canvas.width) / 2
+
+            };
+            var self = this;
+            this.canvas.addEventListener('keydown', function (event) {
+                self.onKeyDown(event)
+            });
+            this.canvas.focus();
+            this.randomlyPutFood();
+            this.draw();
+        },
+        draw:function () {
+            this.calculateMovingCoordinates();
+            if (!this.validateCoordinates(this.coordinates.x, this.coordinates.y)) {
+                alert('Game Over!');
+                this.coordinates = { x:0, y:0 };
+                this.length = 2;
+                this.body = [];
+            }
+            this.drawBody();
+            this.debug();
+
+            var self = this;
+            setTimeout(function () {
+                self.draw()
+            }, this.speed);
+
+        },
+
+        calculateMovingCoordinates:function () {
+            var offset = {
+                x:0,
+                y:0
+            };
+            switch (this.direction) {
+                case 'E':
+                    if (this.canvas.width < this.coordinates.x + this.dimensions.width + 1) {
+                        offset.x = -(this.canvas.width - this.dimensions.width);
+                    }
+                    else {
+                        offset.x = 1;
+                    }
+                    break;
+                case 'W':
+                    if (0 > this.coordinates.x - this.dimensions.width) {
+                        offset.x = this.canvas.width - this.dimensions.width;
+
+                    }
+                    else {
+                        offset.x = -1;
+                    }
+                    break;
+                case 'S':
+                    if (this.canvas.height < this.coordinates.y + this.dimensions.height + 1) {
+                        offset.y = -(this.canvas.height - this.dimensions.height);
+                    }
+                    else {
+                        offset.y = 1;
+                    }
+                    break;
+                case 'N':
+                    if (0 > this.coordinates.y - this.dimensions.height) {
+                        offset.y = this.canvas.height - this.dimensions.height;
+                    }
+                    else {
+                        offset.y -= 1;
+                    }
+                    break;
+            }
+            this.coordinates.x += offset.x;
+            this.coordinates.y += offset.y;
+        },
+
+        drawBody:function () {
+
+            var ctx = this.ctx;
+
+            if (this.body.length == this.length) {
+                this.body.shift();
+            }
+            if (this.body.length < this.length) {
+                this.body.push({ x:this.coordinates.x, y:this.coordinates.y });
+            }
+
+            ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+            ctx.fillStyle = "rgba(0, 0, 200, 1)";
+
+            for (var i = 0; this.body.length > i; i++) {
+                ctx.fillRect(this.body[i].x, this.body[i].y, this.dimensions.width, this.dimensions.height);
+            }
+
+            if (this.coordinates.x == this.foodCoords.x && this.coordinates.y == this.foodCoords.y) {
+                this.length += 1;
+                this.randomlyPutFood();
+                if (this.speed > 100) {
+                    this.speed -= 50;
+                }
+            }
+
+            ctx.fillStyle = "rgba(200, 0, 200, 1)";
+            ctx.fillRect(this.foodCoords.x, this.foodCoords.y, this.dimensions.width, this.dimensions.height);
+        },
+
+        onKeyDown:function (event) {
+            var newDirection = this.keyToDirectionMap[event.keyCode];
+            if (newDirection && this.oppositeDirections[newDirection] != this.direction) {
+                this.direction = newDirection;
+            }
+        },
+
+        randomlyPutFood:function () {
+            var x = -1, y = -1;
+            while (!this.validateCoordinates(x, y)) {
+                x = Math.abs((Math.round(this.canvas.width / this.dimensions.width * Math.random()) - 1) * this.dimensions.width);
+                y = Math.abs((Math.round(this.canvas.height / this.dimensions.height * Math.random()) - 1) * this.dimensions.height);
+            }
+
+            this.foodCoords = { x:x, y:y };
+        },
+
+        validateCoordinates:function (x, y) {
+            if (x < 0 || y < 0) {
+                return false;
+            }
+            for (var i = 0; this.body.length > i; i++) {
+                if (this.body[i].x == x && this.body[i].y == y) return false;
+            }
+            return true;
+        },
+
+        debug:function () {
+            this.ctx.fillStyle = 'rgb(0, 200, 0)';
+            this.ctx.fillText('Length: ' + this.length, 520, 20);
+            this.ctx.fillText('Food: ' + this.foodCoords.x + ',' + this.foodCoords.y, 520, 40);
+            this.ctx.fillText('Coordinates: ' + this.coordinates.x + ',' + this.coordinates.y, 520, 60);
+        },
+
+        moveTo:function (from, to, callback) {
+
+            callback.apply();
+        },
+
+        buildMap: function() {
+
+        }
+
+
+    };
+
+    var canvas = document.getElementById('game');
+
+    app.init(canvas);
+
+</script>
+</body>
+</html>
