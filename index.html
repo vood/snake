@@ -2,12 +2,22 @@
 <html>
 <head>
     <title>Canvas Snake</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta names="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 </head>
-<body>
-<canvas id="game" width="640" height="480" style="border: 5px #006600 solid; outline: none" tabindex="1">
+<body style="margin: 0; padding: 0">
+<canvas id="game" width="300" height="350" style="border: 10px #006600 solid; outline: none" tabindex="1">
 </canvas>
 <script type="text/javascript">
 var app = {
+    logs: [],
+    touchStart:{
+        x:0, y:0
+    },
+    touchEnd:{
+        x:0, y:0
+    },
     keyToDirectionMap:{
         38:'N', //up
         40:'S', //down
@@ -30,7 +40,7 @@ var app = {
     speed:800,
     ctx:null,
     direction:'E',
-    loopNo: 0,
+    loopNo:0,
     foodCoords:{
         x:-20, y:-20
     },
@@ -57,8 +67,14 @@ var app = {
         };
         var self = this;
         this.canvas.addEventListener('keydown', function (event) {
-            self.onKeyDown(event)
-        });
+            self.onKeyDown(event);
+        }, false);
+        this.canvas.addEventListener('touchstart', function (event) {
+            self.onTouchStart(event);
+        }, false);
+        this.canvas.addEventListener('touchend', function (event) {
+            self.onTouchEnd(event);
+        }, false);
         this.canvas.focus();
         this.loadImages();
         this.randomlyPutFood();
@@ -75,6 +91,7 @@ var app = {
         }
         this.drawBody();
         this.debug();
+        this.drawLog();
 
         var self = this;
         this.loopNo += 1;
@@ -151,20 +168,20 @@ var app = {
             var y = this.body[i].y + this.dimensions.width / 2;
             var r = this.dimensions.width / 2;
             var stopAngels = [0, Math.PI * 2];
-            if(i == this.body.length - 1) {
+            if (i == this.body.length - 1) {
                 stopAngels = this.loopNo % 2 ? this.directionToStopAngelsMap[this.direction] : stopAngels;
                 r += 2;
             }
             ctx.fillStyle = 'rgba(0,0,0,0.5)';
             ctx.beginPath();
             ctx.arc(x + 2, y + 2, r, stopAngels[0], stopAngels[1], false);
-            ctx.lineTo(x,y);
+            ctx.lineTo(x, y);
             ctx.closePath();
             ctx.fill();
             ctx.fillStyle = ctx.createPattern(snakeTexture, 'repeat');
             ctx.beginPath();
             ctx.arc(x, y, r, stopAngels[0], stopAngels[1], false);
-            ctx.lineTo(x,y);
+            ctx.lineTo(x, y);
             ctx.closePath();
             ctx.fill();
             ctx.beginPath();
@@ -223,22 +240,69 @@ var app = {
     },
 
     debug:function () {
-        this.ctx.fillStyle = 'rgb(255, 255, 255)';
-        this.ctx.fillText('Length: ' + this.length, 520, 20);
-        this.ctx.fillText('Food: ' + this.foodCoords.x + ',' + this.foodCoords.y, 520, 40);
-        this.ctx.fillText('Coordinates: ' + this.coordinates.x + ',' + this.coordinates.y, 520, 60);
+        this.log('Length: ' + this.length);
+        this.log('Food: ' + this.foodCoords.x + ',' + this.foodCoords.y);
+        this.log('Coordinates: ' + this.coordinates.x + ',' + this.coordinates.y);
     },
 
     loadImages:function () {
         var bg = new Image();
-        bg.src = 'img/Grass-1.jpg';
+        bg.src = 'img/grass.jpg';
         this.ctx.drawImage(bg, 0, 0);
+    },
+
+    onTouchStart:function (event) {
+        this.log(event.type);
+        this.touchStart.x = event.touches[0].clientX;
+        this.touchStart.y = event.touches[0].clientY;
+        event.preventDefault();
+    },
+
+    onTouchEnd:function (event) {
+        this.touchEnd.x = event.changedTouches[0].clientX;
+        this.touchEnd.y = event.changedTouches[0].clientY;
+
+        var deltaX = this.touchEnd.x - this.touchStart.x;
+        var deltaY = this.touchEnd.y - this.touchStart.y;
+        var deltaXAbs = Math.abs(deltaX);
+        var deltaYAbs = Math.abs(deltaY);
+
+        var direction = this.direction;
+        if (deltaXAbs || deltaYAbs) {
+            if (deltaXAbs > deltaYAbs) {
+                this.direction = deltaX > 0 ? 'E' : 'W';
+            }
+            else {
+                this.direction = deltaY > 0 ? 'S' : 'N';
+            }
+        }
+        this.log(event.type + ': ' + deltaX + ' ' + deltaY);
+        event.preventDefault();
+    },
+
+    log:function (message) {
+        this.logs.push(message);
+    },
+
+
+    drawLog:function () {
+        this.ctx.fillStyle = 'rgb(255, 255, 255)';
+        var padding = this.canvas.width - 120;
+        for (var i = 0; i < this.logs.length; i++) {
+            this.ctx.fillText(this.logs[i], padding, 20 + i * 20);
+        }
+        this.logs = [];
     }
+
 
 
 };
 
 var canvas = document.getElementById('game');
+
+document.body.addEventListener('touchmove', function (event) {
+    event.preventDefault();
+}, false);
 
 app.init(canvas);
 
